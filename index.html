@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="World Radio">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Browse and play live radio stations from countries around the world">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230d1117' width='100' height='100' rx='20'/><text x='50' y='68' text-anchor='middle' font-size='55'>🌍</text></svg>">
+<title>🌍 Worldwide Radio Player</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;
+  --text:#e6edf3;--text2:#8b949e;--accent:#58a6ff;
+  --americas:#2ea043;--europe:#58a6ff;--asia:#f85149;--africa:#d29922;--oceania:#a371f7;
+  --radius:10px;--transition:0.25s ease;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:90px;overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}
+
+/* Header */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 24px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:100}
+.header h1{font-size:1.4rem;white-space:nowrap}
+.header h1 span{font-size:1.8rem;margin-right:6px}
+.search-box{flex:1;min-width:200px;max-width:420px;position:relative}
+.search-box input{width:100%;padding:9px 14px 9px 36px;border-radius:20px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--text);font-size:0.9rem;outline:none;transition:border var(--transition)}
+.search-box input:focus{border-color:var(--accent)}
+.search-box::before{content:'🔍';position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:0.85rem}
+.lucky-btn{padding:9px 18px;border-radius:20px;border:none;background:linear-gradient(135deg,#f7931a,#f85149);
+  color:#fff;font-weight:600;cursor:pointer;font-size:0.85rem;white-space:nowrap;transition:transform var(--transition),box-shadow var(--transition)}
+.lucky-btn:hover{transform:scale(1.05);box-shadow:0 0 16px rgba(248,81,73,0.4)}
+
+/* Continent tabs */
+.tabs{display:flex;gap:6px;padding:12px 24px;overflow-x:auto;background:var(--surface);border-bottom:1px solid var(--border)}
+.tab{padding:8px 18px;border-radius:20px;border:2px solid transparent;background:var(--surface2);
+  color:var(--text2);cursor:pointer;font-size:0.85rem;font-weight:600;white-space:nowrap;transition:all var(--transition)}
+.tab:hover{color:var(--text);border-color:var(--border)}
+.tab.active{color:#fff}
+.tab[data-continent="Americas"].active{background:var(--americas);border-color:var(--americas)}
+.tab[data-continent="Europe"].active{background:var(--europe);border-color:var(--europe)}
+.tab[data-continent="Asia"].active{background:var(--asia);border-color:var(--asia)}
+.tab[data-continent="Africa"].active{background:var(--africa);border-color:var(--africa)}
+.tab[data-continent="Oceania"].active{background:var(--oceania);border-color:var(--oceania)}
+
+/* Main content */
+.main{max-width:1200px;margin:0 auto;padding:20px 24px}
+.countries{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.country-btn{padding:7px 14px;border-radius:16px;border:1px solid var(--border);background:var(--surface2);
+  color:var(--text);cursor:pointer;font-size:0.82rem;transition:all var(--transition)}
+.country-btn:hover,.country-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* Station grid */
+.stations{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.station-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;display:flex;flex-direction:column;gap:8px;transition:all var(--transition);cursor:default}
+.station-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.station-card.playing{border-color:var(--accent);box-shadow:0 0 12px rgba(88,166,255,0.25)}
+.station-top{display:flex;align-items:center;gap:10px}
+.station-favicon{width:36px;height:36px;border-radius:6px;object-fit:cover;background:var(--surface2);flex-shrink:0}
+.station-info{flex:1;min-width:0}
+.station-name{font-weight:600;font-size:0.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.station-country{font-size:0.78rem;color:var(--text2)}
+.station-tags{font-size:0.75rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.station-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:auto}
+.bitrate{font-size:0.72rem;padding:3px 8px;background:var(--surface2);border-radius:10px;color:var(--text2)}
+.play-btn{width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;font-size:1rem;
+  display:flex;align-items:center;justify-content:center;transition:all var(--transition);
+  background:var(--accent);color:#fff}
+.play-btn:hover{transform:scale(1.12);box-shadow:0 0 12px rgba(88,166,255,0.5)}
+.play-btn.playing{background:var(--asia)}
+
+/* Mini player */
+.mini-player{position:fixed;bottom:0;left:0;right:0;background:var(--surface);
+  border-top:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:16px;
+  z-index:200;transform:translateY(100%);transition:transform 0.35s ease;backdrop-filter:blur(12px)}
+.mini-player.visible{transform:translateY(0)}
+.mini-player .mp-info{flex:1;min-width:0}
+.mini-player .mp-name{font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-player .mp-detail{font-size:0.78rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-player .mp-controls{display:flex;align-items:center;gap:12px}
+.volume-slider{-webkit-appearance:none;width:100px;height:4px;border-radius:2px;background:var(--surface2);outline:none}
+.volume-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer}
+.volume-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;border:none}
+.stop-btn{width:36px;height:36px;border-radius:50%;border:none;background:var(--asia);color:#fff;
+  font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform var(--transition)}
+.stop-btn:hover{transform:scale(1.1)}
+
+/* Equalizer animation */
+.eq{display:flex;align-items:flex-end;gap:2px;height:18px;margin-right:4px}
+.eq span{width:3px;background:var(--accent);border-radius:1px;animation:eq 0.8s ease-in-out infinite alternate}
+.eq span:nth-child(1){animation-delay:0s;height:8px}
+.eq span:nth-child(2){animation-delay:0.15s;height:14px}
+.eq span:nth-child(3){animation-delay:0.3s;height:6px}
+.eq span:nth-child(4){animation-delay:0.45s;height:12px}
+@keyframes eq{to{height:4px}}
+
+/* Loading spinner */
+.spinner{display:none;margin:40px auto;width:40px;height:40px;border:3px solid var(--surface2);
+  border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite}
+.spinner.show{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Toast */
+.toast-container{position:fixed;top:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 20px;border-radius:var(--radius);background:var(--surface2);border:1px solid var(--border);
+  font-size:0.85rem;animation:toastIn 0.3s ease,toastOut 0.3s ease 2.7s forwards;max-width:340px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.4)}
+.toast.error{border-color:var(--asia);color:#f8d7da}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(40px)}}
+
+/* Empty state */
+.empty{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty .icon{font-size:3rem;margin-bottom:12px}
+
+/* Install banner */
+.install-banner{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--surface);
+  border:1px solid var(--accent);border-radius:var(--radius);padding:12px 18px;display:flex;align-items:center;
+  gap:10px;z-index:250;box-shadow:0 4px 24px rgba(0,0,0,0.5);font-size:0.85rem;white-space:nowrap;
+  animation:toastIn 0.3s ease}
+
+/* Responsive */
+@media(max-width:640px){
+  .header{padding:12px 14px;gap:10px}
+  .header h1{font-size:1.1rem}
+  .search-box{min-width:140px}
+  .tabs{padding:8px 14px}
+  .main{padding:14px}
+  .stations{grid-template-columns:1fr}
+  .mini-player{padding:10px 14px;gap:10px}
+  .volume-slider{width:70px}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <h1><span>🌍</span> World Radio</h1>
+  <div class="search-box">
+    <input type="text" id="search" placeholder="Search stations, countries, genres..." autocomplete="off">
+  </div>
+  <button class="lucky-btn" onclick="feelingLucky()">🎲 Feeling Lucky</button>
+</header>
+
+<nav class="tabs" id="tabs"></nav>
+
+<main class="main">
+  <div class="countries" id="countries"></div>
+  <div class="spinner" id="spinner"></div>
+  <div class="stations" id="stations"></div>
+  <div class="empty" id="empty"><div class="icon">📻</div><p>Select a continent and country to browse stations</p></div>
+</main>
+
+<div class="mini-player" id="miniPlayer">
+  <div class="eq"><span></span><span></span><span></span><span></span></div>
+  <div class="mp-info">
+    <div class="mp-name" id="mpName"></div>
+    <div class="mp-detail" id="mpDetail"></div>
+  </div>
+  <div class="mp-controls">
+    <span style="font-size:0.8rem;color:var(--text2)">🔊</span>
+    <input type="range" class="volume-slider" id="volume" min="0" max="100" value="80">
+    <button class="stop-btn" onclick="stopStation()" title="Stop">⏹</button>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+<audio id="audio" preload="none"></audio>
+
+<script>
+const CONTINENTS = {
+  Americas: {
+    color: '#2ea043',
+    countries: [
+      ['United States','🇺🇸'],['Canada','🇨🇦'],['Mexico','🇲🇽'],['Brazil','🇧🇷'],['Argentina','🇦🇷'],
+      ['Colombia','🇨🇴'],['Chile','🇨🇱'],['Peru','🇵🇪'],['Venezuela','🇻🇪'],['Ecuador','🇪🇨'],
+      ['Cuba','🇨🇺'],['Dominican Republic','🇩🇴'],['Guatemala','🇬🇹'],['Costa Rica','🇨🇷'],
+      ['Panama','🇵🇦'],['Uruguay','🇺🇾'],['Jamaica','🇯🇲'],['Trinidad And Tobago','🇹🇹'],
+      ['Paraguay','🇵🇾'],['Bolivia','🇧🇴']
+    ]
+  },
+  Europe: {
+    color: '#58a6ff',
+    countries: [
+      ['United Kingdom','🇬🇧'],['Germany','🇩🇪'],['France','🇫🇷'],['Spain','🇪🇸'],['Italy','🇮🇹'],
+      ['Netherlands','🇳🇱'],['Poland','🇵🇱'],['Sweden','🇸🇪'],['Norway','🇳🇴'],['Denmark','🇩🇰'],
+      ['Finland','🇫🇮'],['Belgium','🇧🇪'],['Austria','🇦🇹'],['Switzerland','🇨🇭'],['Portugal','🇵🇹'],
+      ['Czech Republic','🇨🇿'],['Romania','🇷🇴'],['Greece','🇬🇷'],['Ireland','🇮🇪'],['Hungary','🇭🇺'],
+      ['Ukraine','🇺🇦'],['Serbia','🇷🇸'],['Croatia','🇭🇷'],['Bulgaria','🇧🇬'],['Slovakia','🇸🇰']
+    ]
+  },
+  Asia: {
+    color: '#f85149',
+    countries: [
+      ['Japan','🇯🇵'],['South Korea','🇰🇷'],['India','🇮🇳'],['China','🇨🇳'],['Indonesia','🇮🇩'],
+      ['Thailand','🇹🇭'],['Philippines','🇵🇭'],['Malaysia','🇲🇾'],['Vietnam','🇻🇳'],['Turkey','🇹🇷'],
+      ['Israel','🇮🇱'],['Saudi Arabia','🇸🇦'],['United Arab Emirates','🇦🇪'],['Pakistan','🇵🇰'],
+      ['Bangladesh','🇧🇩'],['Sri Lanka','🇱🇰'],['Nepal','🇳🇵'],['Iran','🇮🇷'],['Iraq','🇮🇶'],
+      ['Singapore','🇸🇬'],['Taiwan','🇹🇼']
+    ]
+  },
+  Africa: {
+    color: '#d29922',
+    countries: [
+      ['South Africa','🇿🇦'],['Nigeria','🇳🇬'],['Kenya','🇰🇪'],['Ghana','🇬🇭'],['Egypt','🇪🇬'],
+      ['Morocco','🇲🇦'],['Tunisia','🇹🇳'],['Tanzania','🇹🇿'],['Uganda','🇺🇬'],['Ethiopia','🇪🇹'],
+      ['Senegal','🇸🇳'],['Cameroon','🇨🇲'],['Ivory Coast','🇨🇮'],['Mozambique','🇲🇿'],
+      ['Madagascar','🇲🇬'],['Algeria','🇩🇿'],['Zimbabwe','🇿🇼'],['Zambia','🇿🇲']
+    ]
+  },
+  Oceania: {
+    color: '#a371f7',
+    countries: [
+      ['Australia','🇦🇺'],['New Zealand','🇳🇿'],['Fiji','🇫🇯'],['Papua New Guinea','🇵🇬'],
+      ['Samoa','🇼🇸'],['Tonga','🇹🇴'],['Guam','🇬🇺']
+    ]
+  }
+};
+
+const API_BASE = 'https://de1.api.radio-browser.info';
+const stationCache = {};
+let currentStations = [];
+let currentStation = null;
+let activeContinent = null;
+let activeCountry = null;
+
+const audio = document.getElementById('audio');
+const miniPlayer = document.getElementById('miniPlayer');
+const searchInput = document.getElementById('search');
+const stationsEl = document.getElementById('stations');
+const countriesEl = document.getElementById('countries');
+const spinnerEl = document.getElementById('spinner');
+const emptyEl = document.getElementById('empty');
+
+// Build tabs
+const tabsEl = document.getElementById('tabs');
+Object.keys(CONTINENTS).forEach(name => {
+  const btn = document.createElement('button');
+  btn.className = 'tab';
+  btn.dataset.continent = name;
+  btn.textContent = name;
+  btn.onclick = () => selectContinent(name);
+  tabsEl.appendChild(btn);
+});
+
+// Country flag lookup
+const countryFlags = {};
+Object.values(CONTINENTS).forEach(c => c.countries.forEach(([name, flag]) => { countryFlags[name] = flag; }));
+
+function selectContinent(name) {
+  activeContinent = name;
+  activeCountry = null;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.continent === name));
+  renderCountries(name);
+  stationsEl.innerHTML = '';
+  currentStations = [];
+  emptyEl.innerHTML = '<div class="icon">🌐</div><p>Select a country to browse its radio stations</p>';
+  emptyEl.style.display = '';
+}
+
+function renderCountries(continent) {
+  countriesEl.innerHTML = '';
+  CONTINENTS[continent].countries.forEach(([name, flag]) => {
+    const btn = document.createElement('button');
+    btn.className = 'country-btn';
+    btn.textContent = `${flag} ${name}`;
+    btn.onclick = () => selectCountry(name, btn);
+    countriesEl.appendChild(btn);
+  });
+}
+
+async function selectCountry(country, btnEl) {
+  activeCountry = country;
+  document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  await loadStations(country);
+}
+
+async function loadStations(country) {
+  emptyEl.style.display = 'none';
+  stationsEl.innerHTML = '';
+  spinnerEl.classList.add('show');
+
+  try {
+    if (!stationCache[country]) {
+      const encoded = encodeURIComponent(country);
+      const res = await fetch(`${API_BASE}/json/stations/bycountry/${encoded}?limit=50&order=clickcount&reverse=true`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      // Filter to only stations with a resolved URL
+      stationCache[country] = data.filter(s => s.url_resolved);
+    }
+    currentStations = stationCache[country];
+    renderStations(currentStations);
+  } catch (err) {
+    showToast(`Failed to load stations for ${country}: ${err.message}`, true);
+    emptyEl.innerHTML = '<div class="icon">⚠️</div><p>Failed to load stations. Try again later.</p>';
+    emptyEl.style.display = '';
+  } finally {
+    spinnerEl.classList.remove('show');
+  }
+}
+
+function renderStations(stations) {
+  stationsEl.innerHTML = '';
+  if (stations.length === 0) {
+    emptyEl.innerHTML = '<div class="icon">📻</div><p>No stations found</p>';
+    emptyEl.style.display = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  stations.forEach(station => {
+    const card = document.createElement('div');
+    card.className = 'station-card' + (currentStation && currentStation.stationuuid === station.stationuuid ? ' playing' : '');
+    card.dataset.uuid = station.stationuuid;
+
+    const flag = countryFlags[station.country] || '🏳️';
+    const tags = station.tags ? station.tags.split(',').slice(0, 3).join(', ') : 'No genre';
+    const bitrate = station.bitrate ? `${station.bitrate} kbps` : '—';
+    const isPlaying = currentStation && currentStation.stationuuid === station.stationuuid;
+
+    const faviconHtml = station.favicon
+      ? `<img class="station-favicon" src="${escapeAttr(station.favicon)}" alt="" onerror="this.style.display='none'">`
+      : `<div class="station-favicon" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem">📻</div>`;
+
+    card.innerHTML = `
+      <div class="station-top">
+        ${faviconHtml}
+        <div class="station-info">
+          <div class="station-name" title="${escapeAttr(station.name)}">${escapeHtml(station.name)}</div>
+          <div class="station-country">${flag} ${escapeHtml(station.country)}</div>
+        </div>
+      </div>
+      <div class="station-tags" title="${escapeAttr(station.tags || '')}">${escapeHtml(tags)}</div>
+      <div class="station-bottom">
+        <span class="bitrate">${bitrate}</span>
+        <button class="play-btn ${isPlaying ? 'playing' : ''}" onclick="togglePlay('${station.stationuuid}')" title="${isPlaying ? 'Stop' : 'Play'}">
+          ${isPlaying ? '⏹' : '▶'}
+        </button>
+      </div>`;
+    stationsEl.appendChild(card);
+  });
+}
+
+function togglePlay(uuid) {
+  if (currentStation && currentStation.stationuuid === uuid) {
+    stopStation();
+  } else {
+    const station = currentStations.find(s => s.stationuuid === uuid);
+    if (station) playStation(station);
+  }
+}
+
+function playStation(station) {
+  currentStation = station;
+  audio.src = station.url_resolved;
+  audio.volume = document.getElementById('volume').value / 100;
+  audio.play().catch(() => {
+    showToast(`Cannot play "${station.name}" — stream unavailable`, true);
+    currentStation = null;
+    updateUI();
+  });
+  updateUI();
+}
+
+function stopStation() {
+  audio.pause();
+  audio.src = '';
+  currentStation = null;
+  updateUI();
+}
+
+function updateUI() {
+  // Mini player
+  if (currentStation) {
+    const flag = countryFlags[currentStation.country] || '🏳️';
+    const tags = currentStation.tags ? currentStation.tags.split(',').slice(0, 3).join(', ') : '';
+    document.getElementById('mpName').textContent = `${flag} ${currentStation.name}`;
+    document.getElementById('mpDetail').textContent = `${currentStation.country}${tags ? ' · ' + tags : ''}`;
+    miniPlayer.classList.add('visible');
+  } else {
+    miniPlayer.classList.remove('visible');
+  }
+
+  // Station cards
+  document.querySelectorAll('.station-card').forEach(card => {
+    const uuid = card.dataset.uuid;
+    const isPlaying = currentStation && currentStation.stationuuid === uuid;
+    card.classList.toggle('playing', isPlaying);
+    const btn = card.querySelector('.play-btn');
+    if (btn) {
+      btn.classList.toggle('playing', isPlaying);
+      btn.innerHTML = isPlaying ? '⏹' : '▶';
+      btn.title = isPlaying ? 'Stop' : 'Play';
+    }
+  });
+}
+
+// Volume
+document.getElementById('volume').addEventListener('input', e => {
+  audio.volume = e.target.value / 100;
+});
+
+// Audio error
+audio.addEventListener('error', () => {
+  if (currentStation) {
+    showToast(`Stream error: "${currentStation.name}" — skipping`, true);
+    currentStation = null;
+    updateUI();
+  }
+});
+
+// Search
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.toLowerCase().trim();
+  if (!currentStations.length) return;
+  if (!q) {
+    renderStations(currentStations);
+    return;
+  }
+  const filtered = currentStations.filter(s =>
+    s.name.toLowerCase().includes(q) ||
+    s.country.toLowerCase().includes(q) ||
+    (s.tags && s.tags.toLowerCase().includes(q))
+  );
+  renderStations(filtered);
+});
+
+// Feeling Lucky
+async function feelingLucky() {
+  const continentNames = Object.keys(CONTINENTS);
+  const rc = continentNames[Math.floor(Math.random() * continentNames.length)];
+  const countries = CONTINENTS[rc].countries;
+  const [country, flag] = countries[Math.floor(Math.random() * countries.length)];
+
+  showToast(`🎲 Trying ${flag} ${country}...`);
+
+  // Select continent and country visually
+  selectContinent(rc);
+  const countryBtns = countriesEl.querySelectorAll('.country-btn');
+  let targetBtn = null;
+  countryBtns.forEach(b => { if (b.textContent.includes(country)) targetBtn = b; });
+
+  try {
+    if (!stationCache[country]) {
+      const encoded = encodeURIComponent(country);
+      const res = await fetch(`${API_BASE}/json/stations/bycountry/${encoded}?limit=50&order=clickcount&reverse=true`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      stationCache[country] = (await res.json()).filter(s => s.url_resolved);
+    }
+    activeCountry = country;
+    if (targetBtn) targetBtn.classList.add('active');
+    currentStations = stationCache[country];
+    renderStations(currentStations);
+    spinnerEl.classList.remove('show');
+    emptyEl.style.display = 'none';
+
+    if (currentStations.length === 0) {
+      showToast(`No stations found in ${country}, try again!`, true);
+      return;
+    }
+    const station = currentStations[Math.floor(Math.random() * currentStations.length)];
+    playStation(station);
+    showToast(`🎶 Now playing: ${station.name} from ${flag} ${country}`);
+  } catch (err) {
+    showToast(`Failed to load ${country}: ${err.message}`, true);
+  }
+}
+
+// Toast
+function showToast(message, isError = false) {
+  const container = document.getElementById('toasts');
+  const toast = document.createElement('div');
+  toast.className = 'toast' + (isError ? ' error' : '');
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// Helpers
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+function escapeAttr(str) {
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ---- PWA Setup ----
+
+// Inline manifest via blob URL
+const manifest = {
+  name: 'World Radio',
+  short_name: 'Radio',
+  description: 'Browse and play live radio stations worldwide',
+  start_url: location.href,
+  display: 'standalone',
+  background_color: '#0d1117',
+  theme_color: '#0d1117',
+  orientation: 'any',
+  icons: [
+    {
+      src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%230d1117' width='512' height='512' rx='80'/><text x='256' y='350' text-anchor='middle' font-size='280'>🌍</text></svg>",
+      sizes: '512x512',
+      type: 'image/svg+xml',
+      purpose: 'any maskable'
+    },
+    {
+      src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230d1117' width='192' height='192' rx='30'/><text x='96' y='130' text-anchor='middle' font-size='110'>🌍</text></svg>",
+      sizes: '192x192',
+      type: 'image/svg+xml',
+      purpose: 'any maskable'
+    }
+  ]
+};
+const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+const manifestURL = URL.createObjectURL(manifestBlob);
+const linkEl = document.createElement('link');
+linkEl.rel = 'manifest';
+linkEl.href = manifestURL;
+document.head.appendChild(linkEl);
+
+// Register service worker (inline via blob)
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE_NAME = 'world-radio-v1';
+    const STATIC_ASSETS = [self.registration.scope];
+
+    self.addEventListener('install', e => {
+      e.waitUntil(
+        caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS))
+      );
+      self.skipWaiting();
+    });
+
+    self.addEventListener('activate', e => {
+      e.waitUntil(
+        caches.keys().then(keys =>
+          Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+        )
+      );
+      self.clients.claim();
+    });
+
+    self.addEventListener('fetch', e => {
+      const url = new URL(e.request.url);
+      // Only cache the app shell, let API calls go through network
+      if (url.origin === location.origin) {
+        e.respondWith(
+          caches.match(e.request).then(cached => cached || fetch(e.request))
+        );
+      }
+    });
+  `;
+  const swBlob = new Blob([swCode], { type: 'application/javascript' });
+  const swURL = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swURL).catch(() => {});
+}
+
+// PWA install prompt
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallBanner();
+});
+
+function showInstallBanner() {
+  if (document.querySelector('.install-banner')) return;
+  const banner = document.createElement('div');
+  banner.className = 'install-banner';
+  banner.innerHTML = `
+    <span>📲 Install World Radio as an app!</span>
+    <button onclick="installPWA()" style="padding:6px 14px;border-radius:14px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-weight:600;font-size:0.82rem">Install</button>
+    <button onclick="this.parentElement.remove()" style="padding:6px 10px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:0.82rem">Later</button>
+  `;
+  document.body.appendChild(banner);
+}
+
+function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+  const banner = document.querySelector('.install-banner');
+  if (banner) banner.remove();
+}
+
+// Init — select Americas by default
+selectContinent('Americas');
+</script>
+</body>
+</html>
