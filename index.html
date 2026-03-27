@@ -67,12 +67,12 @@ a{color:var(--accent);text-decoration:none}
 .station-info{flex:1;min-width:0}
 .station-name{font-weight:600;font-size:0.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .station-country{font-size:0.78rem;color:var(--text2)}
-.station-tags{font-size:0.75rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.station-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:auto}
-.bitrate{font-size:0.72rem;padding:3px 8px;background:var(--surface2);border-radius:10px;color:var(--text2)}
+.station-tags{flex:1;font-size:0.75rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.station-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.bitrate{font-size:0.72rem;padding:3px 8px;background:var(--surface2);border-radius:10px;color:var(--text2);white-space:nowrap}
 .play-btn{width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;font-size:1rem;
   display:flex;align-items:center;justify-content:center;transition:all var(--transition);
-  background:var(--accent);color:#fff}
+  background:var(--accent);color:#fff;flex-shrink:0}
 .play-btn:hover{transform:scale(1.12);box-shadow:0 0 12px rgba(88,166,255,0.5)}
 .play-btn.playing{background:var(--asia)}
 
@@ -338,13 +338,13 @@ function renderStations(stations) {
           <div class="station-name" title="${escapeAttr(station.name)}">${escapeHtml(station.name)}</div>
           <div class="station-country">${flag} ${escapeHtml(station.country)}</div>
         </div>
-      </div>
-      <div class="station-tags" title="${escapeAttr(station.tags || '')}">${escapeHtml(tags)}</div>
-      <div class="station-bottom">
-        <span class="bitrate">${bitrate}</span>
         <button class="play-btn ${isPlaying ? 'playing' : ''}" onclick="togglePlay('${station.stationuuid}')" title="${isPlaying ? 'Stop' : 'Play'}">
           ${isPlaying ? '⏹' : '▶'}
         </button>
+      </div>
+      <div class="station-bottom">
+        <div class="station-tags" title="${escapeAttr(station.tags || '')}">${escapeHtml(tags)}</div>
+        <span class="bitrate">${bitrate}</span>
       </div>`;
     stationsEl.appendChild(card);
   });
